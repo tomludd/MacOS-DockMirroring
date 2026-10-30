@@ -72,4 +72,5 @@ KEEP_PERMISSIONS=1 ./scripts/build.sh                # ad hoc with a fixed ident
 - `open -n build/MacDockEverywhere.app --args --dump-state /tmp/state.txt` writes the permission status and minimized-window lookup.
 - `open -n build/MacDockEverywhere.app --args --dump-ax /tmp/dock.txt` writes the Dock's accessibility tree.
 - `open build/MacDockEverywhere.app --args -minimumDisplays 3` simulates the single-display idle mode.
+- `open -n build/MacDockEverywhere.app --args --show-menu Safari /tmp/menu.txt` opens a copy's right-click menu, writes where it appeared and closes it.
 - Errors are logged to `~/Library/Logs/DockEverywhere.log`.

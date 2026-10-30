@@ -16,6 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                                                                 object: nil)
         }
         controller.start()
+        Debug.runMenuTestIfRequested(controller: controller)
     }
 
     @objc private func accessibilityChanged() {

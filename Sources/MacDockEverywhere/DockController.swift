@@ -363,6 +363,14 @@ final class DockController: NSObject {
         refreshItems()
     }
 
+    /// Testmodus: åpner høyreklikk-menyen for et element i første synlige kopi.
+    func debugShowMenu(title: String) -> DockView? {
+        guard let panel = panels.values.first(where: { $0.isVisible }),
+              let index = panel.dockView.items.firstIndex(where: { $0.title == title }) else { return nil }
+        panel.dockView.showMenu(for: index)
+        return panel.dockView
+    }
+
     // MARK: - Klikk
 
     func activate(_ item: DockItem, modifiers: NSEvent.ModifierFlags, view: DockView, index: Int) {

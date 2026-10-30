@@ -64,6 +64,8 @@ final class DockView: NSView {
     /// Lytter etter musebevegelser når Docken er skjult, i stedet for å spørre hele tiden.
     private var mouseMonitor: Any?
     private var lastPointerMove: CFTimeInterval = 0
+    /// Menyen som vises akkurat nå (brukes av testmodusen i Debug).
+    private(set) weak var trackingMenu: NSMenu?
     /// Nye kopier starter i hvile til vinduet faktisk vises.
     private var isSuspended = true
     private var lastTick = CACurrentMediaTime()
@@ -665,7 +667,7 @@ final class DockView: NSView {
         showMenu(for: i)
     }
 
-    private func showMenu(for index: Int) {
+    func showMenu(for index: Int) {
         guard index < items.count, items[index].isSelectable else { return }
         let item = items[index]
         popupOpen = true
@@ -679,21 +681,35 @@ final class DockView: NSView {
         }
     }
 
-    /// Viser en meny over (eller ved siden av) et ikon, slik Docken gjør.
+    /// Viser en meny ved et ikon slik Docken gjør: menyen står helt inntil Dock-linjen, og kanten
+    /// starter 40 pt før ikonets midte (målt mot den ekte Docken).
     func popUp(_ menu: NSMenu, anchorIndex: Int) {
         popupOpen = true
         let anchor = iconRect(at: anchorIndex)
-        let size = menu.size
-        let gap: CGFloat = 12
+        let bar = barRect()
+        let size = Self.visibleSize(of: menu)
+        let offset: CGFloat = 40
+        // `NSMenu.size` er 5 pt høyere enn den synlige menyen (målt; likt for alle menyer).
+        let height = size.height - 5
         let location: NSPoint
         switch orientation {
-        case .bottom: location = NSPoint(x: anchor.midX - size.width / 2, y: anchor.maxY + gap + size.height)
-        case .left: location = NSPoint(x: anchor.maxX + gap, y: anchor.midY + size.height / 2)
-        case .right: location = NSPoint(x: anchor.minX - gap - size.width, y: anchor.midY + size.height / 2)
+        case .bottom: location = NSPoint(x: anchor.midX - offset, y: bar.maxY + height)
+        case .left: location = NSPoint(x: bar.maxX, y: anchor.midY + offset)
+        case .right: location = NSPoint(x: bar.minX - size.width, y: anchor.midY + offset)
         }
+        trackingMenu = menu
         menu.popUp(positioning: nil, at: location, in: self)
+        trackingMenu = nil
         popupOpen = false
         refreshPointer()
+    }
+
+    /// `NSMenu.size` regner med Option-variantene («Tving avslutning» osv.) selv om de er skjult,
+    /// så vi måler en kopi uten dem.
+    private static func visibleSize(of menu: NSMenu) -> NSSize {
+        guard menu.items.contains(where: \.isAlternate), let copy = menu.copy() as? NSMenu else { return menu.size }
+        for item in copy.items where item.isAlternate { copy.removeItem(item) }
+        return copy.size
     }
 
     // MARK: - Dra og slipp

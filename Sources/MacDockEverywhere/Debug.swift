@@ -26,6 +26,40 @@ enum Debug {
         }
     }
 
+    /// `--show-menu <tittel> <fil>`: åpner kopiens høyreklikk-meny, skriver hvor menyen og ikonet
+    /// står (skjermkoordinater, origo øverst til venstre), lukker menyen og avslutter.
+    static func runMenuTestIfRequested(controller: DockController) {
+        let args = CommandLine.arguments
+        guard let i = args.firstIndex(of: "--show-menu"), i + 2 < args.count else { return }
+        let title = args[i + 1], path = args[i + 2]
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            guard let view = controller.debugShowMenu(title: title) else {
+                try? "fant ikke \(title)\n".write(toFile: path, atomically: true, encoding: .utf8)
+                exit(1)
+            }
+            let timer = Timer(timeInterval: 2, repeats: false) { _ in
+                var out = ""
+                let pid = ProcessInfo.processInfo.processIdentifier
+                let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] ?? []
+                for window in list where (window[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value == pid {
+                    let layer = (window[kCGWindowLayer as String] as? NSNumber)?.intValue ?? 0
+                    if let bounds = window[kCGWindowBounds as String] as? NSDictionary,
+                       let rect = CGRect(dictionaryRepresentation: bounds) {
+                        out += "vindu nivå \(layer): \(rect)\n"
+                    }
+                }
+                if let index = view.items.firstIndex(where: { $0.title == title }), let screen = NSScreen.screens.first {
+                    let icon = view.screenRect(forItemAt: index)
+                    out += "ikon: \(CGRect(x: icon.minX, y: screen.frame.maxY - icon.maxY, width: icon.width, height: icon.height))\n"
+                }
+                try? out.write(toFile: path, atomically: true, encoding: .utf8)
+                view.trackingMenu?.cancelTracking()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { exit(0) }
+            }
+            RunLoop.main.add(timer, forMode: .common)
+        }
+    }
+
     private static func describe(_ value: CFTypeRef?) -> String {
         guard let value else { return "nil" }
         if CFGetTypeID(value) == AXUIElementGetTypeID() { return "<element>" }
